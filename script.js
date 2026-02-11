@@ -1,4 +1,13 @@
 const btn = document.getElementById("btnBereken");
+const gerechtSelect = document.getElementById("gerecht");
+const kantonExtra = document.getElementById("kantonExtra");
+
+if (gerechtSelect && kantonExtra) {
+  gerechtSelect.addEventListener("change", () => {
+    kantonExtra.style.display = gerechtSelect.value === "kanton" ? "block" : "none";
+  });
+}
+
 const tariefSelect = document.getElementById("tariefset");
 let TARIEVEN = null;
 
@@ -68,6 +77,75 @@ function getGriffierechtBand(vordering, partijType) {
   return { bedrag: last[key], bandLabel: "—", note: last.note || "" };
 }
 
+function getPartijKey() {
+  const partijType = document.getElementById("partijType").value;
+  if (partijType === "onvermogend") return "onvermogend";
+  if (partijType === "natuurlijk") return "natuurlijk";
+  return "niet_natuurlijk";
+}
+
+function getGriffierechtKanton(vordering, valueType /* "geld"|"onbepaald"|"ontruiming"|"overig" */) {
+  const key = getPartijKey();
+  const bands = TARIEVEN.griffierecht_kanton.bands;
+
+  // Onbepaalde waarde valt in de eerste band (≤ 500) volgens Rechtspraak. :contentReference[oaicite:5]{index=5}
+  if (valueType === "onbepaald") {
+    const b0 = bands[0];
+    return { bedrag: b0[key], bandLabel: "Onbepaalde waarde / ≤ €500" };
+  }
+
+  // Voor "ontruiming" en "overig" gebruiken we hier: behandelen als “onbepaalde waarde / laagste band”
+  // (Je kunt dit later finetunen als je er aparte griffierechtregels voor wil modelleren.)
+  if (valueType === "ontruiming" || valueType === "overig") {
+    const b0 = bands[0];
+    return { bedrag: b0[key], bandLabel: "Kanton (default): laagste schijf" };
+  }
+
+  // Geldvordering: echte schijven
+  for (const b of bands) {
+    if (b.max === null || vordering <= b.max) {
+      return {
+        bedrag: b[key],
+        bandLabel: b.max === null ? "> €12.500" : `≤ €${b.max.toLocaleString("nl-NL")}`
+      };
+    }
+  }
+
+  const last = bands[bands.length - 1];
+  return { bedrag: last[key], bandLabel: "> €12.500" };
+}
+
+function getLiquidatieKanton(vordering, valueType) {
+  const L = TARIEVEN.liquidatie_kanton;
+
+  if (valueType === "ontruiming") {
+    return { type: "vast", salaris: L.specials.ontruiming.salaris, maxPunten: L.specials.ontruiming.maxPunten };
+  }
+  if (valueType === "overig") {
+    return { type: "vast", salaris: L.specials.overige_verzoeken.salaris, maxPunten: L.specials.overige_verzoeken.maxPunten };
+  }
+  if (valueType === "onbepaald") {
+    return { type: "range", min: L.specials.onbepaald_range.min, max: L.specials.onbepaald_range.max, maxPunten: null };
+  }
+
+  // Geldvordering staffel
+  for (const r of L.money_bands) {
+    if (r.max === null || vordering <= r.max) {
+      return { type: "vast", salaris: r.salaris, maxPunten: r.maxPunten, bandMax: r.max };
+    }
+  }
+
+  const last = L.money_bands[L.money_bands.length - 1];
+  return { type: "vast", salaris: last.salaris, maxPunten: last.maxPunten, bandMax: last.max };
+}
+
+function pickRangeValue(min, max) {
+  const niveau = document.getElementById("onbepaaldNiveau").value; // laag/gemiddeld/hoog
+  if (niveau === "laag") return min;
+  if (niveau === "hoog") return max;
+  return Math.round((min + max) / 2);
+}
+
 function setTarievenInfo() {
   const el = document.getElementById("tarievenInfo");
   if (!TARIEVEN) {
@@ -76,6 +154,8 @@ function setTarievenInfo() {
   }
   el.innerText = `${TARIEVEN.label}. Laatst bijgewerkt: ${TARIEVEN.updated}.`;
 }
+
+
 
 async function init() {
   try {
@@ -100,85 +180,7 @@ tariefSelect.addEventListener("change", async () => {
   }
 });
 
-btn.addEventListener("click", () => {
-  showMelding("");
 
-  if (!TARIEVEN) {
-    showMelding("Tarieven zijn nog niet geladen. Open via GitHub Pages of een lokale webserver.");
-    return;
-  }
-
-  const vorderingRaw = document.getElementById("vordering").value;
-  const vordering = Number(vorderingRaw);
-  const partijType = document.getElementById("partijType").value;
-
-  // Validatie
-  if (vorderingRaw === "") {
-    showMelding("Vul de hoogte van de vordering in.");
-    return;
-  }
-  if (!Number.isFinite(vordering) || vordering <= 0) {
-    showMelding("Vul een positief getal in voor de vordering.");
-    return;
-  }
-  if (vordering > 1_000_000_000) {
-    showMelding("Dit bedrag is wel héél hoog. Check of je geen typefout hebt gemaakt.");
-  }
-
-  const punten = getPunten();
-  if (!Number.isFinite(punten) || punten < 0) {
-    showMelding("Punten moeten 0 of hoger zijn.");
-    return;
-  }
-
-  const exploot = document.getElementById("exploot").checked;
-  const nakosten = document.getElementById("nakosten").checked;
-
-  // Griffierecht
-  const g = getGriffierechtBand(vordering, partijType);
-  const griffierecht = g.bedrag;
-
-  // Liquidatie
-  const tarief = getTariefInfoLiquidatie(vordering);
-  const maxPunten = tarief.maxPunten;
-  const puntenGeliquideerd = maxPunten == null ? punten : Math.min(punten, maxPunten);
-  const salaris = puntenGeliquideerd * tarief.punt;
-
-  // Overige posten (indicatief)
-  const explootKosten = exploot ? TARIEVEN.defaults.exploot_schatting : 0;
-  const nakostenBedrag = nakosten ? TARIEVEN.defaults.nakosten_schatting : 0;
-
-  const totaal = griffierecht + salaris + explootKosten + nakostenBedrag;
-
-  const partijLabel =
-    partijType === "onvermogend" ? "Onvermogend" :
-    partijType === "natuurlijk" ? "Natuurlijke persoon" :
-    "Niet-natuurlijke persoon";
-
-  const maxTxt = maxPunten == null ? "geen max" : `max ${maxPunten}`;
-
-  const noteTxt = g.note ? `<br><em>Let op:</em> ${g.note}` : "";
-
-  document.getElementById("resultaat").innerHTML = `
-    <strong>Totaal (indicatie):</strong> ${euro(totaal)}<br><br>
-
-    <strong>Specificatie</strong><br>
-    Griffierecht: ${euro(griffierecht)}<br>
-    Salaris advocaat (liquidatietarief): ${euro(salaris)}<br>
-    Explootkosten: ${euro(explootKosten)}<br>
-    Nakosten: ${euro(nakostenBedrag)}<br><br>
-
-    <strong>Transparantie</strong><br>
-    Tariefjaar: ${tariefSelect.value}<br>
-    Vordering: ${euro(vordering)}<br>
-    Partij: ${partijLabel}<br>
-    Griffierecht-band: ${g.bandLabel}${noteTxt}<br>
-    Liquidatietarief: tarief ${tarief.name}, ${euro(tarief.punt)}/punt, ${maxTxt}<br>
-    Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br><br>
-
-    <em>Disclaimer:</em> indicatie. Rechter kan afwijken; exploot/nakosten hangen af van de concrete situatie.
-  `;
-});
 
 init();
 
