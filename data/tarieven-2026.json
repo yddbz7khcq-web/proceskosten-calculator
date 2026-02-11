@@ -38,3 +38,40 @@
     "nakosten_schatting": 135
   }
 }
+{
+  "griffierecht_kanton": {
+    "bands": [
+      { "max": 500, "niet_natuurlijk": 139, "natuurlijk": 93, "onvermogend": 93, "includes_onbepaald": true },
+      { "max": 1500, "niet_natuurlijk": 350, "natuurlijk": 233, "onvermogend": 93 },
+      { "max": 2500, "niet_natuurlijk": 397, "natuurlijk": 265, "onvermogend": 93 },
+      { "max": 5000, "niet_natuurlijk": 529, "natuurlijk": 265, "onvermogend": 93 },
+      { "max": 12500, "niet_natuurlijk": 559, "natuurlijk": 265, "onvermogend": 93 },
+      { "max": null, "niet_natuurlijk": 1504, "natuurlijk": 753, "onvermogend": 93 }
+    ]
+  },
+
+  "liquidatie_kanton": {
+    "money_bands": [
+      { "max": 250, "salaris": 43, "maxPunten": 3 },
+      { "max": 500, "salaris": 87, "maxPunten": 4 },
+      { "max": 1250, "salaris": 144, "maxPunten": 5 },
+      { "max": 2500, "salaris": 217, "maxPunten": 5 },
+      { "max": 3750, "salaris": 253, "maxPunten": 5 },
+      { "max": 5000, "salaris": 288, "maxPunten": 6 },
+      { "max": 10000, "salaris": 360, "maxPunten": 6 },
+      { "max": 20000, "salaris": 432, "maxPunten": 7 },
+      { "max": 40000, "salaris": 577, "maxPunten": 10 },
+      { "max": 100000, "salaris": 866, "maxPunten": 10 },
+      { "max": 200000, "salaris": 1010, "maxPunten": null },
+      { "max": 400000, "salaris": 1155, "maxPunten": null },
+      { "max": 1000000, "salaris": 1441, "maxPunten": null },
+      { "max": null, "salaris": 1731, "maxPunten": null }
+    ],
+    "specials": {
+      "onbepaald_range": { "min": 87, "max": 1155, "maxPunten": null },
+      "ontruiming": { "salaris": 217, "maxPunten": 5 },
+      "overige_verzoeken": { "salaris": 288, "maxPunten": null }
+    },
+    "nakosten_max": 144
+  }
+}
