@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Proceskosten Calculator – Civiel (Rechtbank)</title>
+  <title>Proceskosten Calculator – Civiel</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -11,36 +11,60 @@
   <main class="card">
     <h1>Proceskosten Calculator</h1>
     <p class="sub">
-      Civiele zaken bij de rechtbank (niet-kanton). Indicatie; rechter kan afwijken.
+      Indicatie van proceskosten. Rechter kan afwijken.
     </p>
 
     <label for="tariefset">Tarieven</label>
     <select id="tariefset">
       <option value="2026" selected>2026</option>
     </select>
-<label for="gerecht">Gerecht</label>
-<select id="gerecht">
-  <option value="rechtbank_civiel" selected>Rechtbank (civiel)</option>
-  <option value="kanton">Kanton</option>
-  <option value="hof">Gerechtshof (principaal hoger beroep)</option>
-</select>
 
-<div id="kantonExtra" style="display:none;">
-  <label for="kantonSoort">Kanton: soort zaak</label>
-  <select id="kantonSoort">
-    <option value="geld" selected>Geldvordering (staffel)</option>
-    <option value="onbepaald">Onbepaalde waarde (range)</option>
-    <option value="ontruiming">Ontruiming</option>
-    <option value="overig">Overige verzoeken</option>
-  </select>
+    <label for="gerecht">Gerecht</label>
+    <select id="gerecht">
+      <option value="rechtbank_civiel" selected>Rechtbank (civiel)</option>
+      <option value="kanton">Kanton</option>
+      <option value="hof">Gerechtshof (principaal hoger beroep)</option>
+    </select>
 
-  <label for="onbepaaldNiveau">Onbepaalde waarde: niveau (alleen voor indicatie)</label>
-  <select id="onbepaaldNiveau">
-    <option value="laag">Laag (min)</option>
-    <option value="gemiddeld" selected>Gemiddeld</option>
-    <option value="hoog">Hoog (max)</option>
-  </select>
-</div>
+    <div id="kantonExtra" style="display:none;">
+      <label for="kantonSoort">Kanton: soort zaak</label>
+      <select id="kantonSoort">
+        <option value="geld" selected>Geldvordering (staffel)</option>
+        <option value="onbepaald">Onbepaalde waarde (range)</option>
+        <option value="ontruiming">Ontruiming</option>
+        <option value="overig">Overige verzoeken</option>
+      </select>
+
+      <label for="onbepaaldNiveau">Onbepaalde waarde: niveau (alleen voor indicatie)</label>
+      <select id="onbepaaldNiveau">
+        <option value="laag">Laag (min)</option>
+        <option value="gemiddeld" selected>Gemiddeld</option>
+        <option value="hoog">Hoog (max)</option>
+      </select>
+    </div>
+
+    <div id="hofExtra" style="display:none;">
+      <hr class="sep" />
+      <h2>Hof (extra)</h2>
+
+      <div class="row">
+        <label class="check">
+          <input type="checkbox" id="incidenteel" />
+          Incidenteel appel meenemen (indicatie)
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="check">
+          <input type="checkbox" id="incidenteelNoodzakelijk" />
+          Incidenteel: noodzakelijk geoordeeld (anders €0)
+        </label>
+      </div>
+
+      <p class="hint">
+        Bij incidenteel appel wordt indicatief ½ van het salaris in principaal gehanteerd, mits noodzakelijk geoordeeld.
+      </p>
+    </div>
 
     <label for="vordering">Hoogte vordering (€)</label>
     <input type="number" id="vordering" placeholder="Bijv. 50000" min="0" step="1" />
@@ -64,7 +88,7 @@
     <hr class="sep" />
 
     <h2>Proceshandelingen (punten)</h2>
-    <p class="hint">Vink aan wat er is gebeurd. Handmatig invullen overschrijft de vinkjes.</p>
+    <p class="hint">Vink aan wat er is gebeurd. Handmatig invullen overschrijf de vinkjes.</p>
 
     <div class="grid">
       <label class="check">
@@ -105,6 +129,13 @@
       <label class="check">
         <input type="checkbox" id="nakosten" />
         Nakosten meenemen
+      </label>
+    </div>
+
+    <div class="row">
+      <label class="check">
+        <input type="checkbox" id="betekening" />
+        Nakosten: met betekening (+ €98)
       </label>
     </div>
 
