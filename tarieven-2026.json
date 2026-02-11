@@ -1,0 +1,40 @@
+{
+  "label": "Tarieven 2026 (griffierecht) + liquidatietarief rechtbank per 1 feb 2026",
+  "updated": "2026-02-11",
+  "source_note": "Bronnen: Rechtspraak.nl (griffierecht civiel, liquidatietarief rechtbanken/hoven).",
+  "griffierecht_civiel_rechtbank": {
+    "onvermogend": 93,
+    "bands": [
+      {
+        "max": 100000,
+        "natuurlijk": 1414,
+        "niet_natuurlijk": 3083
+      },
+      {
+        "max": 1000000,
+        "natuurlijk": 2803,
+        "niet_natuurlijk": 7062
+      },
+      {
+        "max": null,
+        "natuurlijk": 2803,
+        "niet_natuurlijk": 10487,
+        "note": "Let op: bij natuurlijke personen geldt doorgaans niet de categorie > 1.000.000; daarom is natuurlijk hier gelijk gehouden aan de band tot 1.000.000."
+      }
+    ]
+  },
+  "liquidatietarief_rechtbank": [
+    { "name": "I", "max": 9999, "punt": 554, "maxPunten": 5 },
+    { "name": "II", "max": 19999, "punt": 653, "maxPunten": 6 },
+    { "name": "III", "max": 39999, "punt": 836, "maxPunten": 7 },
+    { "name": "IV", "max": 97999, "punt": 1290, "maxPunten": 10 },
+    { "name": "V", "max": 194999, "punt": 2051, "maxPunten": null },
+    { "name": "VI", "max": 389999, "punt": 2885, "maxPunten": null },
+    { "name": "VII", "max": 1000000, "punt": 3723, "maxPunten": null },
+    { "name": "VIII", "max": null, "punt": 4631, "maxPunten": null }
+  ],
+  "defaults": {
+    "exploot_schatting": 115,
+    "nakosten_schatting": 135
+  }
+}
