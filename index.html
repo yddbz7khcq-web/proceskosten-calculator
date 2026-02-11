@@ -45,6 +45,15 @@
     <label for="vordering">Hoogte vordering (€)</label>
     <input type="number" id="vordering" placeholder="Bijv. 50000" min="0" step="1" />
 
+    <label for="waardeType">Waarde</label>
+    <select id="waardeType">
+      <option value="geld" selected>Geldvordering (bedrag in €)</option>
+      <option value="onbepaald">Onbepaalde waarde</option>
+    </select>
+    <p class="hint" id="waardeHint" style="margin-top:6px;">
+      Bij onbepaalde waarde wordt het bedrag alleen gebruikt voor liquidatietarief (indicatief).
+    </p>
+
     <label for="partijType">Partij (voor griffierecht)</label>
     <select id="partijType">
       <option value="niet_natuurlijk">Niet-natuurlijke persoon (bv. BV/VOF)</option>
