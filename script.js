@@ -1,17 +1,24 @@
 // ======================
-// Elementen & state
+// Proceskosten calculator (Rechtbank civiel + Kanton + Hof principaal)
+// Verwacht in data/tarieven-YYYY.json o.a. deze keys:
+// - griffierecht_civiel_rechtbank
+// - liquidatietarief_rechtbank
+// - griffierecht_kanton
+// - liquidatie_kanton
+// - griffierecht_hof_civiel
+// - liquidatietarief_hof_principaal
+// - defaults (exploot_schatting, nakosten_schatting)  [optioneel maar handig]
 // ======================
+
+// --------- Elementen & state ---------
 const btn = document.getElementById("btnBereken");
 const tariefSelect = document.getElementById("tariefset");
-
-const gerechtSelect = document.getElementById("gerecht");      // optioneel (als je dit al in index.html hebt gezet)
-const kantonExtra = document.getElementById("kantonExtra");    // optioneel
+const gerechtSelect = document.getElementById("gerecht");      // rechtbank_civiel | kanton | hof
+const kantonExtra = document.getElementById("kantonExtra");    // kanton-only block (kan ontbreken)
 
 let TARIEVEN = null;
 
-// ======================
-// Helpers (UI)
-// ======================
+// --------- UI helpers ---------
 function euro(n) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
 }
@@ -19,7 +26,6 @@ function euro(n) {
 function showMelding(text) {
   const el = document.getElementById("melding");
   if (!el) return;
-
   if (!text) {
     el.classList.add("hidden");
     el.innerText = "";
@@ -32,7 +38,6 @@ function showMelding(text) {
 function setTarievenInfo() {
   const el = document.getElementById("tarievenInfo");
   if (!el) return;
-
   if (!TARIEVEN) {
     el.innerText = "—";
     return;
@@ -40,53 +45,14 @@ function setTarievenInfo() {
   el.innerText = `${TARIEVEN.label}. Laatst bijgewerkt: ${TARIEVEN.updated}.`;
 }
 
-// ======================
-// Laden tarieven
-// ======================
+// --------- Data laden ---------
 async function loadTarieven(jaar) {
   const res = await fetch(`data/tarieven-${jaar}.json`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Kan tarieven-${jaar}.json niet laden (HTTP ${res.status}).`);
   return await res.json();
 }
 
-async function init() {
-  try {
-    TARIEVEN = await loadTarieven(tariefSelect.value);
-    setTarievenInfo();
-  } catch (e) {
-    showMelding(`Ik kan de tarieven niet laden: ${e?.message || e}`);
-    console.error(e);
-  }
-
-  // UI toggle voor kanton extra's (als aanwezig)
-  if (gerechtSelect && kantonExtra) {
-    const sync = () => {
-      kantonExtra.style.display = gerechtSelect.value === "kanton" ? "block" : "none";
-    };
-    gerechtSelect.addEventListener("change", sync);
-    sync();
-  }
-}
-
-// Wisselen tariefjaar
-if (tariefSelect) {
-  tariefSelect.addEventListener("change", async () => {
-    showMelding("");
-    try {
-      TARIEVEN = await loadTarieven(tariefSelect.value);
-      setTarievenInfo();
-    } catch (e) {
-      TARIEVEN = null;
-      setTarievenInfo();
-      showMelding(`Tarieven wisselen lukt niet: ${e?.message || e}`);
-      console.error(e);
-    }
-  });
-}
-
-// ======================
-// Punten
-// ======================
+// --------- Punten ---------
 function getPunten() {
   const handmatigEl = document.getElementById("puntenHandmatig");
   const handmatig = handmatigEl ? handmatigEl.value : "";
@@ -100,7 +66,7 @@ function getPunten() {
 }
 
 // ======================
-// Rechtbank civiel (griffierecht + liquidatietarief)
+// Rechtbank civiel helpers
 // ======================
 function getTariefInfoRechtbank(vordering) {
   const rows = TARIEVEN.liquidatietarief_rechtbank;
@@ -135,12 +101,7 @@ function getGriffierechtRechtbank(vordering, partijType) {
 }
 
 // ======================
-// Kanton (griffierecht + liquidatie kanton)
-// Vereist dat je JSON keys hebt:
-// - TARIEVEN.griffierecht_kanton.bands[]
-// - TARIEVEN.liquidatie_kanton.money_bands[]
-// - TARIEVEN.liquidatie_kanton.specials.*
-// - TARIEVEN.liquidatie_kanton.nakosten_max
+// Kanton helpers
 // ======================
 function getPartijKey() {
   const partijType = document.getElementById("partijType")?.value || "niet_natuurlijk";
@@ -159,7 +120,7 @@ function getGriffierechtKanton(vordering, valueType) {
     return { bedrag: b0[key], bandLabel: "Onbepaalde waarde / laagste schijf" };
   }
 
-  // Ontruiming/overig: hier ook laagste schijf (eenvoudige default)
+  // Ontruiming/overig -> hier ook laagste schijf (simpele default)
   if (valueType === "ontruiming" || valueType === "overig") {
     const b0 = bands[0];
     return { bedrag: b0[key], bandLabel: "Kanton (default): laagste schijf" };
@@ -204,14 +165,52 @@ function getLiquidatieKanton(vordering, valueType) {
 }
 
 function pickRangeValue(min, max) {
-  const niveau = document.getElementById("onbepaaldNiveau")?.value || "gemiddeld";
+  const niveau = document.getElementById("onbepaaldNiveau")?.value || "gemiddeld"; // laag/gemiddeld/hoog
   if (niveau === "laag") return min;
   if (niveau === "hoog") return max;
   return Math.round((min + max) / 2);
 }
 
 // ======================
-// Klik: bereken
+// Hof (principaal) helpers
+// ======================
+function getGriffierechtHof(vordering, partijType, isOnbepaald = false) {
+  const bands = TARIEVEN.griffierecht_hof_civiel.bands;
+  const key =
+    partijType === "onvermogend" ? "onvermogend" :
+    partijType === "natuurlijk" ? "natuurlijk" :
+    "niet_natuurlijk";
+
+  // onbepaalde waarde -> eerste band
+  if (isOnbepaald) {
+    const b0 = bands[0];
+    return { bedrag: b0[key], bandLabel: b0.label || "Onbepaalde waarde", note: b0.note || "" };
+  }
+
+  for (const b of bands) {
+    if (b.max === null || vordering <= b.max) {
+      // speciale regel: natuurlijke persoon > 1.000.000 valt terug naar band tot 1.000.000
+      if (b.max === null && key === "natuurlijk") {
+        const prev = bands.find(x => x.max === 1000000) || b;
+        return { bedrag: prev[key], bandLabel: prev.label || "€ 100.000 – € 1.000.000", note: b.note || "" };
+      }
+      return { bedrag: b[key], bandLabel: b.label || "—", note: b.note || "" };
+    }
+  }
+  const last = bands[bands.length - 1];
+  return { bedrag: last[key], bandLabel: last.label || "—", note: last.note || "" };
+}
+
+function getTariefInfoHofPrincipaal(vordering) {
+  const rows = TARIEVEN.liquidatietarief_hof_principaal;
+  for (const r of rows) {
+    if (r.max === null || vordering <= r.max) return r;
+  }
+  return rows[rows.length - 1];
+}
+
+// ======================
+// Main click: bereken
 // ======================
 btn.addEventListener("click", () => {
   showMelding("");
@@ -226,7 +225,7 @@ btn.addEventListener("click", () => {
   const vorderingRaw = document.getElementById("vordering")?.value ?? "";
   const vordering = Number(vorderingRaw);
 
-  // basis validatie
+  // Validatie: vordering
   if (vorderingRaw === "") {
     showMelding("Vul de hoogte van de vordering in.");
     return;
@@ -235,13 +234,18 @@ btn.addEventListener("click", () => {
     showMelding("Vul een geldig bedrag in (0 of hoger).");
     return;
   }
+  if (vordering > 1_000_000_000) {
+    showMelding("Dit bedrag is wel héél hoog. Controleer of je geen typefout hebt gemaakt.");
+  }
 
+  // Punten
   const punten = getPunten();
   if (!Number.isFinite(punten) || punten < 0) {
     showMelding("Punten moeten 0 of hoger zijn.");
     return;
   }
 
+  // Overige posten (optioneel)
   const explootAan = document.getElementById("exploot")?.checked ?? false;
   const nakostenAan = document.getElementById("nakosten")?.checked ?? false;
 
@@ -270,8 +274,7 @@ btn.addEventListener("click", () => {
       liqUitleg = `Liquidatie (kanton): staffel-salaris €${liq.salaris} (punten: ${punten}, geliquideerd: ${puntenGeliq}${liq.maxPunten ? `, max ${liq.maxPunten}` : ""})`;
     }
 
-    const nakostenBedrag = nakostenAan ? TARIEVEN.liquidatie_kanton.nakosten_max : 0;
-
+    const nakostenBedrag = nakostenAan ? (TARIEVEN.liquidatie_kanton.nakosten_max ?? 0) : 0;
     const totaal = griffierecht + salaris + explootKosten + nakostenBedrag;
 
     document.getElementById("resultaat").innerHTML = `
@@ -295,7 +298,45 @@ btn.addEventListener("click", () => {
   }
 
   // ======================
-  // RECHTBANK CIVIEL
+  // HOF (principaal)
+  // ======================
+  if (gerecht === "hof") {
+    const partijType = document.getElementById("partijType")?.value || "niet_natuurlijk";
+
+    // (Later voegen we UI toe voor onbepaalde waarde; nu default: false)
+    const g = getGriffierechtHof(vordering, partijType, false);
+    const griffierecht = g.bedrag;
+
+    const tarief = getTariefInfoHofPrincipaal(vordering);
+    const puntenGeliquideerd = tarief.maxPunten == null ? punten : Math.min(punten, tarief.maxPunten);
+    const salaris = puntenGeliquideerd * tarief.punt;
+
+    const nakostenBedrag = nakostenAan ? (TARIEVEN.defaults?.nakosten_schatting ?? 135) : 0;
+    const totaal = griffierecht + salaris + explootKosten + nakostenBedrag;
+
+    document.getElementById("resultaat").innerHTML = `
+      <strong>Totaal (indicatie):</strong> ${euro(totaal)}<br><br>
+
+      <strong>Specificatie (Hof – principaal)</strong><br>
+      Griffierecht: ${euro(griffierecht)}<br>
+      Salaris advocaat (liquidatietarief): ${euro(salaris)}<br>
+      Explootkosten: ${euro(explootKosten)}<br>
+      Nakosten: ${euro(nakostenBedrag)}<br><br>
+
+      <strong>Transparantie</strong><br>
+      Tariefjaar: ${tariefSelect.value}<br>
+      Vordering: ${euro(vordering)}<br>
+      Griffierecht-band: ${g.bandLabel}${g.note ? `<br><em>Let op:</em> ${g.note}` : ""}<br>
+      Liquidatietarief hof: tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
+      Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br><br>
+
+      <em>Disclaimer:</em> indicatie; rechter kan afwijken.
+    `;
+    return;
+  }
+
+  // ======================
+  // RECHTBANK CIVIEL (default)
   // ======================
   const partijType = document.getElementById("partijType")?.value || "niet_natuurlijk";
 
@@ -307,7 +348,6 @@ btn.addEventListener("click", () => {
   const salaris = puntenGeliquideerd * tarief.punt;
 
   const nakostenBedrag = nakostenAan ? (TARIEVEN.defaults?.nakosten_schatting ?? 135) : 0;
-
   const totaal = griffierecht + salaris + explootKosten + nakostenBedrag;
 
   document.getElementById("resultaat").innerHTML = `
@@ -323,12 +363,49 @@ btn.addEventListener("click", () => {
     Tariefjaar: ${tariefSelect.value}<br>
     Vordering: ${euro(vordering)}<br>
     Griffierecht-band: ${g.bandLabel}<br>
-    Liquidatietarief: tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
+    Liquidatietarief rechtbank: tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
     Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br><br>
 
     <em>Disclaimer:</em> indicatie; rechter kan afwijken.
   `;
 });
 
-// Start
+// --------- Init + listeners ---------
+async function init() {
+  try {
+    TARIEVEN = await loadTarieven(tariefSelect.value);
+    setTarievenInfo();
+  } catch (e) {
+    TARIEVEN = null;
+    setTarievenInfo();
+    showMelding(`Ik kan de tarieven niet laden: ${e?.message || e}`);
+    console.error(e);
+  }
+
+  // Kanton extra velden tonen/verbergen
+  if (gerechtSelect && kantonExtra) {
+    const sync = () => {
+      kantonExtra.style.display = gerechtSelect.value === "kanton" ? "block" : "none";
+    };
+    gerechtSelect.addEventListener("change", sync);
+    sync();
+  }
+}
+
+// wisselen tariefjaar
+if (tariefSelect) {
+  tariefSelect.addEventListener("change", async () => {
+    showMelding("");
+    try {
+      TARIEVEN = await loadTarieven(tariefSelect.value);
+      setTarievenInfo();
+    } catch (e) {
+      TARIEVEN = null;
+      setTarievenInfo();
+      showMelding(`Tarieven wisselen lukt niet: ${e?.message || e}`);
+      console.error(e);
+    }
+  });
+}
+
 init();
