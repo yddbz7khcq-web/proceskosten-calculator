@@ -36,9 +36,8 @@
   "defaults": {
     "exploot_schatting": 115,
     "nakosten_schatting": 135
-  }
-}
-{
+  },
+
   "griffierecht_kanton": {
     "bands": [
       { "max": 500, "niet_natuurlijk": 139, "natuurlijk": 93, "onvermogend": 93, "includes_onbepaald": true },
