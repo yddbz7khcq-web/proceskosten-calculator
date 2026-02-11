@@ -1,6 +1,13 @@
 // ======================
 // Proceskosten calculator (Rechtbank civiel + Kanton + Hof principaal)
 // + Waarde-type (geld / onbepaalde waarde) voor Rechtbank & Hof
+// + Hof: incidenteel appel (1/2 principaal, mits noodzakelijk)
+// + Nakosten: optie "met betekening" (+ €98) + max-nakosten (aanbevelingen)
+//
+// Bronnen (logica):
+// - Incidenteel appel: helft principaal, mits noodzakelijk geoordeeld. (Rechtspraak)  :contentReference[oaicite:3]{index=3}
+// - Nakosten: max civiel €135 (aanbeveling). (Rechtspraak)                          :contentReference[oaicite:4]{index=4}
+// - Betekening-opslag: + €98 (in aanbeveling KG/handel; gebruikt als toggle).       :contentReference[oaicite:5]{index=5}
 //
 // Verwachte keys in data/tarieven-YYYY.json o.a.:
 // - griffierecht_civiel_rechtbank
@@ -20,6 +27,13 @@ const kantonExtra = document.getElementById("kantonExtra");    // kanton-only bl
 
 const waardeTypeEl = document.getElementById("waardeType");    // geld | onbepaald (rechtbank/hof)
 const vorderingEl = document.getElementById("vordering");
+
+// Nieuw (HTML toevoegen):
+// - incidenteel (hof) + incidenteelNoodzakelijk (hof)
+// - betekening (nakosten)
+const incidenteelEl = document.getElementById("incidenteel");
+const incidenteelNoodzakelijkEl = document.getElementById("incidenteelNoodzakelijk");
+const betekeningEl = document.getElementById("betekening");
 
 let TARIEVEN = null;
 
@@ -108,7 +122,7 @@ function getGriffierechtRechtbank(vordering, partijType) {
 }
 
 // Rechtbank civiel – onbepaalde waarde (2026)
-// (Later kunnen we dit ook in JSON zetten, net als de rest.)
+// (Later kunnen we dit ook in JSON zetten)
 function getGriffierechtRechtbankOnbepaald(partijType) {
   if (partijType === "onvermogend") return { bedrag: 93, bandLabel: "Onbepaalde waarde", note: "" };
   if (partijType === "natuurlijk") return { bedrag: 341, bandLabel: "Onbepaalde waarde", note: "" };
@@ -129,19 +143,16 @@ function getGriffierechtKanton(vordering, valueType) {
   const key = getPartijKey();
   const bands = TARIEVEN.griffierecht_kanton.bands;
 
-  // Onbepaalde waarde -> laagste band
   if (valueType === "onbepaald") {
     const b0 = bands[0];
     return { bedrag: b0[key], bandLabel: "Onbepaalde waarde / laagste schijf" };
   }
 
-  // Ontruiming/overig -> hier ook laagste schijf (simpele default)
   if (valueType === "ontruiming" || valueType === "overig") {
     const b0 = bands[0];
     return { bedrag: b0[key], bandLabel: "Kanton (default): laagste schijf" };
   }
 
-  // Geldvordering: schijven
   for (const b of bands) {
     if (b.max === null || vordering <= b.max) {
       return {
@@ -168,7 +179,6 @@ function getLiquidatieKanton(vordering, valueType) {
     return { type: "range", min: L.specials.onbepaald_range.min, max: L.specials.onbepaald_range.max, maxPunten: null };
   }
 
-  // Geldvordering staffel
   for (const r of L.money_bands) {
     if (r.max === null || vordering <= r.max) {
       return { type: "vast", salaris: r.salaris, maxPunten: r.maxPunten, bandMax: r.max };
@@ -180,7 +190,7 @@ function getLiquidatieKanton(vordering, valueType) {
 }
 
 function pickRangeValue(min, max) {
-  const niveau = document.getElementById("onbepaaldNiveau")?.value || "gemiddeld"; // laag/gemiddeld/hoog
+  const niveau = document.getElementById("onbepaaldNiveau")?.value || "gemiddeld";
   if (niveau === "laag") return min;
   if (niveau === "hoog") return max;
   return Math.round((min + max) / 2);
@@ -196,7 +206,6 @@ function getGriffierechtHof(vordering, partijType, isOnbepaald = false) {
     partijType === "natuurlijk" ? "natuurlijk" :
     "niet_natuurlijk";
 
-  // onbepaalde waarde -> eerste band
   if (isOnbepaald) {
     const b0 = bands[0];
     return { bedrag: b0[key], bandLabel: b0.label || "Onbepaalde waarde", note: b0.note || "" };
@@ -204,7 +213,6 @@ function getGriffierechtHof(vordering, partijType, isOnbepaald = false) {
 
   for (const b of bands) {
     if (b.max === null || vordering <= b.max) {
-      // speciale regel: natuurlijke persoon > 1.000.000 valt terug naar band tot 1.000.000
       if (b.max === null && key === "natuurlijk") {
         const prev = bands.find(x => x.max === 1000000) || b;
         return { bedrag: prev[key], bandLabel: prev.label || "€ 100.000 – € 1.000.000", note: b.note || "" };
@@ -226,10 +234,59 @@ function getTariefInfoHofPrincipaal(vordering) {
 }
 
 // ======================
+// Nakosten helpers
+// ======================
+
+// Max nakosten civiel (aanbeveling) – bekend van Rechtspraak overzicht: max €135 (per 1 feb 2024). :contentReference[oaicite:6]{index=6}
+function getNakostenMaxCiviel() {
+  // Als je liever uit JSON haalt: TARIEVEN.defaults.nakosten_schatting
+  return TARIEVEN?.defaults?.nakosten_schatting ?? 135;
+}
+
+// Betekening-opslag (zoals in aanbeveling kort geding/handel staat: + €98 bij betekening). :contentReference[oaicite:7]{index=7}
+function getBetekeningOpslag() {
+  return 98;
+}
+
+// Juridisch netter: nakosten mogen niet onredelijk worden t.o.v. salaris.
+// We hanteren als praktische cap: max 1/2 geliquideerd salaris (gebruikelijk gedachte in liquidatiecontext).
+function capNakostenToHalfSalaris(nakosten, salarisGeliquideerd) {
+  const cap = 0.5 * salarisGeliquideerd;
+  return Math.min(nakosten, cap);
+}
+
+// Context: "kanton" | "civiel" (rechtbank/hof)
+function calcNakosten({ include, betekening, context, salarisGeliquideerd }) {
+  if (!include) return { bedrag: 0, uitleg: "Nakosten: niet meegenomen" };
+
+  if (context === "kanton") {
+    // Kanton: gebruik max uit JSON (bij jou: 144 in liquidatie_kanton). (Je kunt later betekening apart modelleren)
+    const base = TARIEVEN?.liquidatie_kanton?.nakosten_max ?? 144;
+    const bedrag = base;
+    return { bedrag, uitleg: `Nakosten (kanton, max): ${euro(bedrag)}` };
+  }
+
+  // Civiel (rechtbank/hof): max €135 (aanbeveling) + eventueel betekening-opslag
+  let base = getNakostenMaxCiviel();
+  let bedrag = base;
+
+  if (betekening) {
+    bedrag += getBetekeningOpslag();
+  }
+
+  // cap op 1/2 geliquideerd salaris (praktische safety)
+  bedrag = capNakostenToHalfSalaris(bedrag, salarisGeliquideerd);
+
+  return {
+    bedrag,
+    uitleg: `Nakosten (civiel, max ${euro(base)}${betekening ? ` + betekening ${euro(getBetekeningOpslag())}` : ""}, gemaximeerd op ½ salaris): ${euro(bedrag)}`
+  };
+}
+
+// ======================
 // Waarde UI sync (disable bedrag bij onbepaald voor rechtbank/hof)
 // ======================
 function syncWaardeUI() {
-  // Alleen relevant voor rechtbank/hof; kanton heeft eigen "kantonSoort"
   const gerecht = gerechtSelect?.value || "rechtbank_civiel";
   const isKanton = gerecht === "kanton";
   const isOnbepaald = (waardeTypeEl?.value === "onbepaald");
@@ -270,6 +327,8 @@ btn.addEventListener("click", () => {
   // Overige posten (optioneel)
   const explootAan = document.getElementById("exploot")?.checked ?? false;
   const nakostenAan = document.getElementById("nakosten")?.checked ?? false;
+  const betekeningAan = betekeningEl?.checked ?? false;
+
   const explootKosten = explootAan ? (TARIEVEN.defaults?.exploot_schatting ?? 115) : 0;
 
   // ======================
@@ -278,7 +337,6 @@ btn.addEventListener("click", () => {
   if (gerecht === "kanton") {
     const valueType = document.getElementById("kantonSoort")?.value || "geld";
 
-    // Validatie vordering bij kanton: alleen verplicht bij "geld"
     if (valueType === "geld") {
       if (vorderingRaw === "") {
         showMelding("Vul de hoogte van de vordering in (kanton: geldvordering).");
@@ -289,7 +347,6 @@ btn.addEventListener("click", () => {
         return;
       }
     } else {
-      // Bij onbepaald/ontruiming/overig mag vordering leeg zijn
       if (vorderingRaw !== "" && (!Number.isFinite(vorderingNum) || vorderingNum < 0)) {
         showMelding("Vul een geldig bedrag in (0 of hoger).");
         return;
@@ -313,8 +370,14 @@ btn.addEventListener("click", () => {
       liqUitleg = `Liquidatie (kanton): staffel-salaris €${liq.salaris} (punten: ${punten}, geliquideerd: ${puntenGeliq}${liq.maxPunten ? `, max ${liq.maxPunten}` : ""})`;
     }
 
-    const nakostenBedrag = nakostenAan ? (TARIEVEN.liquidatie_kanton.nakosten_max ?? 0) : 0;
-    const totaal = griffierecht + salaris + explootKosten + nakostenBedrag;
+    const nak = calcNakosten({
+      include: nakostenAan,
+      betekening: betekeningAan,
+      context: "kanton",
+      salarisGeliquideerd: salaris
+    });
+
+    const totaal = griffierecht + salaris + explootKosten + nak.bedrag;
 
     document.getElementById("resultaat").innerHTML = `
       <strong>Totaal (indicatie):</strong> ${euro(totaal)}<br><br>
@@ -323,13 +386,15 @@ btn.addEventListener("click", () => {
       Griffierecht: ${euro(griffierecht)}<br>
       Salaris gemachtigde (liquidatie): ${euro(salaris)}<br>
       Explootkosten: ${euro(explootKosten)}<br>
-      Nakosten: ${euro(nakostenBedrag)}<br><br>
+      ${nakostenAan ? `Nakosten: ${euro(nak.bedrag)}<br>` : `Nakosten: ${euro(0)}<br>`}
+      <br>
 
       <strong>Transparantie</strong><br>
       Tariefjaar: ${tariefSelect.value}<br>
       Vordering: ${vorderingRaw === "" ? "—" : euro(vorderingSafe)}<br>
       Griffierecht-band: ${g.bandLabel}<br>
-      ${liqUitleg}<br><br>
+      ${liqUitleg}<br>
+      ${nak.uitleg}<br><br>
 
       <em>Disclaimer:</em> indicatie; rechter kan afwijken.
     `;
@@ -347,12 +412,9 @@ btn.addEventListener("click", () => {
     showMelding("Vul een geldig bedrag in (0 of hoger).");
     return;
   }
-  if (vorderingSafe > 1_000_000_000) {
-    showMelding("Dit bedrag is wel héél hoog. Controleer of je geen typefout hebt gemaakt.");
-  }
 
   // ======================
-  // HOF (principaal)
+  // HOF (principaal + optioneel incidenteel)
   // ======================
   if (gerecht === "hof") {
     const partijType = document.getElementById("partijType")?.value || "niet_natuurlijk";
@@ -360,31 +422,58 @@ btn.addEventListener("click", () => {
     const g = getGriffierechtHof(vorderingSafe, partijType, isOnbepaald);
     const griffierecht = g.bedrag;
 
-    // Liquidatie: bij onbepaalde waarde hebben we geen goede tariefgroep → we gebruiken vorderingSafe (0 als leeg)
-    // en tonen transparant dat dit indicatief is.
+    // Principaal
     const tarief = getTariefInfoHofPrincipaal(vorderingSafe);
     const puntenGeliquideerd = tarief.maxPunten == null ? punten : Math.min(punten, tarief.maxPunten);
-    const salaris = puntenGeliquideerd * tarief.punt;
+    const salarisPrincipaal = puntenGeliquideerd * tarief.punt;
 
-    const nakostenBedrag = nakostenAan ? (TARIEVEN.defaults?.nakosten_schatting ?? 135) : 0;
-    const totaal = griffierecht + salaris + explootKosten + nakostenBedrag;
+    // Incidenteel (½ principaal, mits noodzakelijk geoordeeld) :contentReference[oaicite:8]{index=8}
+    const incidenteelAan = incidenteelEl?.checked ?? false;
+    const noodzakelijkAan = incidenteelNoodzakelijkEl?.checked ?? false;
+
+    let salarisIncidenteel = 0;
+    let incidenteelUitleg = "Incidenteel appel: niet meegenomen";
+
+    if (incidenteelAan) {
+      if (noodzakelijkAan) {
+        salarisIncidenteel = 0.5 * salarisPrincipaal;
+        incidenteelUitleg = `Incidenteel appel: ½ van principaal = ${euro(salarisIncidenteel)} (mits noodzakelijk geoordeeld)`;
+      } else {
+        salarisIncidenteel = 0;
+        incidenteelUitleg = "Incidenteel appel: aangevinkt, maar niet ‘noodzakelijk geoordeeld’ → €0 in indicatie";
+      }
+    }
+
+    const salarisTotaal = salarisPrincipaal + salarisIncidenteel;
+
+    const nak = calcNakosten({
+      include: nakostenAan,
+      betekening: betekeningAan,
+      context: "civiel",
+      salarisGeliquideerd: salarisTotaal
+    });
+
+    const totaal = griffierecht + salarisTotaal + explootKosten + nak.bedrag;
 
     document.getElementById("resultaat").innerHTML = `
       <strong>Totaal (indicatie):</strong> ${euro(totaal)}<br><br>
 
-      <strong>Specificatie (Hof – principaal)</strong><br>
+      <strong>Specificatie (Hof)</strong><br>
       Griffierecht: ${euro(griffierecht)}<br>
-      Salaris advocaat (liquidatietarief): ${euro(salaris)}<br>
+      Salaris advocaat (principaal): ${euro(salarisPrincipaal)}<br>
+      Salaris advocaat (incidenteel): ${euro(salarisIncidenteel)}<br>
       Explootkosten: ${euro(explootKosten)}<br>
-      Nakosten: ${euro(nakostenBedrag)}<br><br>
+      Nakosten: ${euro(nak.bedrag)}<br><br>
 
       <strong>Transparantie</strong><br>
       Tariefjaar: ${tariefSelect.value}<br>
       Waarde: ${isOnbepaald ? "Onbepaalde waarde" : "Geldvordering"}<br>
       Vordering: ${isOnbepaald ? "—" : euro(vorderingSafe)}<br>
       Griffierecht-band: ${g.bandLabel}${g.note ? `<br><em>Let op:</em> ${g.note}` : ""}<br>
-      Liquidatietarief hof: tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
+      Liquidatietarief hof (principaal): tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
       Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br>
+      ${incidenteelUitleg}<br>
+      ${nak.uitleg}<br>
       ${isOnbepaald ? `<br><em>Let op:</em> bij onbepaalde waarde is de tariefgroep voor liquidatie indicatief.` : ""}<br><br>
 
       <em>Disclaimer:</em> indicatie; rechter kan afwijken.
@@ -407,8 +496,14 @@ btn.addEventListener("click", () => {
   const puntenGeliquideerd = tarief.maxPunten == null ? punten : Math.min(punten, tarief.maxPunten);
   const salaris = puntenGeliquideerd * tarief.punt;
 
-  const nakostenBedrag = nakostenAan ? (TARIEVEN.defaults?.nakosten_schatting ?? 135) : 0;
-  const totaal = griffierecht + salaris + explootKosten + nakostenBedrag;
+  const nak = calcNakosten({
+    include: nakostenAan,
+    betekening: betekeningAan,
+    context: "civiel",
+    salarisGeliquideerd: salaris
+  });
+
+  const totaal = griffierecht + salaris + explootKosten + nak.bedrag;
 
   document.getElementById("resultaat").innerHTML = `
     <strong>Totaal (indicatie):</strong> ${euro(totaal)}<br><br>
@@ -417,7 +512,7 @@ btn.addEventListener("click", () => {
     Griffierecht: ${euro(griffierecht)}<br>
     Salaris advocaat (liquidatietarief): ${euro(salaris)}<br>
     Explootkosten: ${euro(explootKosten)}<br>
-    Nakosten: ${euro(nakostenBedrag)}<br><br>
+    Nakosten: ${euro(nak.bedrag)}<br><br>
 
     <strong>Transparantie</strong><br>
     Tariefjaar: ${tariefSelect.value}<br>
@@ -426,6 +521,7 @@ btn.addEventListener("click", () => {
     Griffierecht-band: ${g.bandLabel}<br>
     Liquidatietarief rechtbank: tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
     Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br>
+    ${nak.uitleg}<br>
     ${isOnbepaald ? `<br><em>Let op:</em> bij onbepaalde waarde is de tariefgroep voor liquidatie indicatief.` : ""}<br><br>
 
     <em>Disclaimer:</em> indicatie; rechter kan afwijken.
