@@ -72,5 +72,50 @@
       "overige_verzoeken": { "salaris": 288, "maxPunten": null }
     },
     "nakosten_max": 144
-  }
+  },
+"griffierecht_hof_civiel": {
+  "bands": [
+    {
+      "max": 12500,
+      "label": "Onbepaalde waarde of ≤ € 12.500",
+      "niet_natuurlijk": 851,
+      "natuurlijk": 373,
+      "onvermogend": 373
+    },
+    {
+      "max": 100000,
+      "label": "€ 12.500 – € 100.000",
+      "niet_natuurlijk": 2321,
+      "natuurlijk": 851,
+      "onvermogend": 373
+    },
+    {
+      "max": 1000000,
+      "label": "€ 100.000 – € 1.000.000",
+      "niet_natuurlijk": 7003,
+      "natuurlijk": 2192,
+      "onvermogend": 373
+    },
+    {
+      "max": null,
+      "label": "> € 1.000.000",
+      "niet_natuurlijk": 14007,
+      "natuurlijk": 2192,
+      "onvermogend": 373,
+      "note": "Als een natuurlijke persoon partij is, geldt deze categorie niet; dan geldt de band € 100.000 – € 1.000.000."
+    }
+  ]
+},
+"liquidatietarief_hof_principaal": [
+  { "name": "I", "max": 9999, "punt": 912, "maxPunten": 3 },
+  { "name": "II", "max": 19999, "punt": 1290, "maxPunten": 3 },
+  { "name": "III", "max": 39999, "punt": 1670, "maxPunten": 4 },
+  { "name": "IV", "max": 97999, "punt": 2352, "maxPunten": 6 },
+  { "name": "V", "max": 194999, "punt": 3797, "maxPunten": null },
+  { "name": "VI", "max": 389999, "punt": 4707, "maxPunten": null },
+  { "name": "VII", "max": 1000000, "punt": 5619, "maxPunten": null },
+  { "name": "VIII", "max": null, "punt": 6609, "maxPunten": null }
+]
+
 }
+
