@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -10,7 +11,9 @@
 <body>
   <main class="card">
     <h1>Proceskosten Calculator</h1>
-    <p class="sub">Indicatie van proceskosten. Rechter kan afwijken.</p>
+    <p class="sub">
+      Indicatie van proceskosten. Rechter kan afwijken.
+    </p>
 
     <label for="tariefset">Tarieven</label>
     <select id="tariefset">
@@ -21,7 +24,7 @@
     <select id="gerecht">
       <option value="rechtbank_civiel" selected>Rechtbank (civiel)</option>
       <option value="kanton">Kanton</option>
-      <option value="hof">Gerechtshof (hoger beroep)</option>
+      <option value="hof">Gerechtshof (principaal hoger beroep)</option>
     </select>
 
     <label for="procedure">Procedure</label>
@@ -30,8 +33,53 @@
       <option value="kg">Kort geding</option>
     </select>
 
-    <!-- KANTON EXTRA -->
+    <div id="kgExtra" style="display:none;">
+      <hr class="sep" />
+      <h2>Kort geding (instellingen)</h2>
+
+      <label for="kgType">Type</label>
+      <select id="kgType">
+        <option value="contradictoir" selected>Contradictoir</option>
+        <option value="verstek">Verstek</option>
+      </select>
+
+      <label for="kgComplex">Complexiteit (indicatie)</label>
+      <select id="kgComplex">
+        <option value="eenvoudig">Eenvoudig</option>
+        <option value="gemiddeld" selected>Gemiddeld</option>
+        <option value="complex">Complex</option>
+      </select>
+
+      <div class="row">
+        <label class="check">
+          <input type="checkbox" id="kgExtraZitting" />
+          Extra zitting (NB2: +½ tarief)
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="check">
+          <input type="checkbox" id="kgReconventie" />
+          Conventie + reconventie (voor nakosten handel-KG)
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="check">
+          <input type="checkbox" id="kgReconventieHalveer" />
+          Reconventie vloeit voort uit verweer (NB3: halveer salaris)
+        </label>
+      </div>
+
+      <p class="hint">
+        Kort geding gebruikt vaste salarissen (geen punten). Complexiteit is een indicatie; rechter kan afwijken.
+      </p>
+    </div>
+
     <div id="kantonExtra" style="display:none;">
+      <hr class="sep" />
+      <h2>Kanton (extra)</h2>
+
       <label for="kantonSoort">Kanton: soort zaak</label>
       <select id="kantonSoort">
         <option value="geld" selected>Geldvordering (staffel)</option>
@@ -48,7 +96,6 @@
       </select>
     </div>
 
-    <!-- HOF EXTRA -->
     <div id="hofExtra" style="display:none;">
       <hr class="sep" />
       <h2>Hof (extra)</h2>
@@ -72,17 +119,94 @@
       </p>
     </div>
 
-    <!-- KORT GEDING EXTRA -->
-    <div id="kgExtra" style="display:none;">
-      <hr class="sep" />
-      <h2>Kort geding (extra)</h2>
+    <label for="vordering">Hoogte vordering (€)</label>
+    <input type="number" id="vordering" placeholder="Bijv. 50000" min="0" step="1" />
 
-      <label for="kgType">KG: wijze van afdoening</label>
-      <select id="kgType">
-        <option value="contradictoir" selected>Contradictoir</option>
-        <option value="verstek">Verstek</option>
-      </select>
+    <label for="waardeType">Waarde</label>
+    <select id="waardeType">
+      <option value="geld" selected>Geldvordering (bedrag in €)</option>
+      <option value="onbepaald">Onbepaalde waarde</option>
+    </select>
+    <p class="hint" id="waardeHint" style="margin-top:6px;">
+      Bij onbepaalde waarde wordt het bedrag alleen gebruikt voor liquidatietarief (indicatief).
+    </p>
 
-      <label for="kgComplex">KG: complexiteit</label>
-      <select id="kgComplex">
-        <option value="eenvoudig">Eenvoud
+    <label for="partijType">Partij (voor griffierecht)</label>
+    <select id="partijType">
+      <option value="niet_natuurlijk">Niet-natuurlijke persoon (bv. BV/VOF)</option>
+      <option value="natuurlijk">Natuurlijke persoon (bv. particulier/eenmanszaak)</option>
+      <option value="onvermogend">Onvermogend (laag inkomen)</option>
+    </select>
+
+    <hr class="sep" />
+
+    <h2>Proceshandelingen (punten)</h2>
+    <p class="hint">Alleen relevant voor bodemprocedure (rechtbank/hof). Handmatig invullen overschrijft de vinkjes.</p>
+
+    <div class="grid">
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" checked />
+        Dagvaarding / procesinleiding (1 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" checked />
+        Conclusie van antwoord (1 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" />
+        Mondelinge behandeling (1 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="0.5" />
+        Akte / conclusie na zitting (0,5 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" />
+        Incident (conclusie) (1 punt)
+      </label>
+    </div>
+
+    <label for="puntenHandmatig">Punten handmatig (optioneel)</label>
+    <input type="number" id="puntenHandmatig" placeholder="Leeg laten = vinkjes gebruiken" min="0" step="0.5" />
+
+    <div class="row">
+      <label class="check">
+        <input type="checkbox" id="exploot" checked />
+        Explootkosten meenemen
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="nakosten" />
+        Nakosten meenemen
+      </label>
+    </div>
+
+    <div class="row">
+      <label class="check">
+        <input type="checkbox" id="betekening" />
+        Nakosten: met betekening (+ €98)
+      </label>
+    </div>
+
+    <button id="btnBereken">Bereken</button>
+
+    <section class="result">
+      <h2>Resultaat</h2>
+      <div id="melding" class="melding hidden"></div>
+      <div id="resultaat" class="result-box">Vul gegevens in en klik op Bereken.</div>
+
+      <div class="meta">
+        <strong>Tarieven gebruikt</strong><br />
+        <span id="tarievenInfo">—</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
+```
