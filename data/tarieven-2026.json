@@ -1,0 +1,75 @@
+{
+  "label": "Tarieven 2026 (griffierecht) + liquidatietarief rechtbank per 1 feb 2026",
+  "updated": "2026-02-11",
+  "source_note": "Bronnen: Rechtspraak.nl (griffierecht civiel, liquidatietarief rechtbanken/hoven).",
+  "griffierecht_civiel_rechtbank": {
+    "onvermogend": 93,
+    "bands": [
+      {
+        "max": 100000,
+        "natuurlijk": 1414,
+        "niet_natuurlijk": 3083
+      },
+      {
+        "max": 1000000,
+        "natuurlijk": 2803,
+        "niet_natuurlijk": 7062
+      },
+      {
+        "max": null,
+        "natuurlijk": 2803,
+        "niet_natuurlijk": 10487,
+        "note": "Let op: bij natuurlijke personen geldt doorgaans niet de categorie > 1.000.000; daarom is natuurlijk hier gelijk gehouden aan de band tot 1.000.000."
+      }
+    ]
+  },
+  "liquidatietarief_rechtbank": [
+    { "name": "I", "max": 9999, "punt": 554, "maxPunten": 5 },
+    { "name": "II", "max": 19999, "punt": 653, "maxPunten": 6 },
+    { "name": "III", "max": 39999, "punt": 836, "maxPunten": 7 },
+    { "name": "IV", "max": 97999, "punt": 1290, "maxPunten": 10 },
+    { "name": "V", "max": 194999, "punt": 2051, "maxPunten": null },
+    { "name": "VI", "max": 389999, "punt": 2885, "maxPunten": null },
+    { "name": "VII", "max": 1000000, "punt": 3723, "maxPunten": null },
+    { "name": "VIII", "max": null, "punt": 4631, "maxPunten": null }
+  ],
+  "defaults": {
+    "exploot_schatting": 115,
+    "nakosten_schatting": 135
+},
+"griffierecht_kanton": {
+    "bands": [
+      { "max": 500, "niet_natuurlijk": 139, "natuurlijk": 93, "onvermogend": 93, "includes_onbepaald": true },
+      { "max": 1500, "niet_natuurlijk": 350, "natuurlijk": 233, "onvermogend": 93 },
+      { "max": 2500, "niet_natuurlijk": 397, "natuurlijk": 265, "onvermogend": 93 },
+      { "max": 5000, "niet_natuurlijk": 529, "natuurlijk": 265, "onvermogend": 93 },
+      { "max": 12500, "niet_natuurlijk": 559, "natuurlijk": 265, "onvermogend": 93 },
+      { "max": null, "niet_natuurlijk": 1504, "natuurlijk": 753, "onvermogend": 93 }
+    ]
+  },
+
+  "liquidatie_kanton": {
+    "money_bands": [
+      { "max": 250, "salaris": 43, "maxPunten": 3 },
+      { "max": 500, "salaris": 87, "maxPunten": 4 },
+      { "max": 1250, "salaris": 144, "maxPunten": 5 },
+      { "max": 2500, "salaris": 217, "maxPunten": 5 },
+      { "max": 3750, "salaris": 253, "maxPunten": 5 },
+      { "max": 5000, "salaris": 288, "maxPunten": 6 },
+      { "max": 10000, "salaris": 360, "maxPunten": 6 },
+      { "max": 20000, "salaris": 432, "maxPunten": 7 },
+      { "max": 40000, "salaris": 577, "maxPunten": 10 },
+      { "max": 100000, "salaris": 866, "maxPunten": 10 },
+      { "max": 200000, "salaris": 1010, "maxPunten": null },
+      { "max": 400000, "salaris": 1155, "maxPunten": null },
+      { "max": 1000000, "salaris": 1441, "maxPunten": null },
+      { "max": null, "salaris": 1731, "maxPunten": null }
+    ],
+    "specials": {
+      "onbepaald_range": { "min": 87, "max": 1155, "maxPunten": null },
+      "ontruiming": { "salaris": 217, "maxPunten": 5 },
+      "overige_verzoeken": { "salaris": 288, "maxPunten": null }
+    },
+    "nakosten_max": 144
+  }
+}

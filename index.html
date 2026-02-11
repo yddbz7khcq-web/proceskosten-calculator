@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Proceskosten Calculator – Civiel (Rechtbank)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <main class="card">
+    <h1>Proceskosten Calculator</h1>
+    <p class="sub">
+      Civiele zaken bij de rechtbank (niet-kanton). Indicatie; rechter kan afwijken.
+    </p>
+
+    <label for="tariefset">Tarieven</label>
+    <select id="tariefset">
+      <option value="2026" selected>2026</option>
+    </select>
+<label for="gerecht">Gerecht</label>
+<select id="gerecht">
+  <option value="rechtbank_civiel" selected>Rechtbank (civiel)</option>
+  <option value="kanton">Kanton</option>
+</select>
+
+<div id="kantonExtra" style="display:none;">
+  <label for="kantonSoort">Kanton: soort zaak</label>
+  <select id="kantonSoort">
+    <option value="geld" selected>Geldvordering (staffel)</option>
+    <option value="onbepaald">Onbepaalde waarde (range)</option>
+    <option value="ontruiming">Ontruiming</option>
+    <option value="overig">Overige verzoeken</option>
+  </select>
+
+  <label for="onbepaaldNiveau">Onbepaalde waarde: niveau (alleen voor indicatie)</label>
+  <select id="onbepaaldNiveau">
+    <option value="laag">Laag (min)</option>
+    <option value="gemiddeld" selected>Gemiddeld</option>
+    <option value="hoog">Hoog (max)</option>
+  </select>
+</div>
+
+    <label for="vordering">Hoogte vordering (€)</label>
+    <input type="number" id="vordering" placeholder="Bijv. 50000" min="0" step="1" />
+
+    <label for="partijType">Partij (voor griffierecht)</label>
+    <select id="partijType">
+      <option value="niet_natuurlijk">Niet-natuurlijke persoon (bv. BV/VOF)</option>
+      <option value="natuurlijk">Natuurlijke persoon (bv. particulier/eenmanszaak)</option>
+      <option value="onvermogend">Onvermogend (laag inkomen)</option>
+    </select>
+
+    <hr class="sep" />
+
+    <h2>Proceshandelingen (punten)</h2>
+    <p class="hint">Vink aan wat er is gebeurd. Handmatig invullen overschrijft de vinkjes.</p>
+
+    <div class="grid">
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" checked />
+        Dagvaarding / procesinleiding (1 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" checked />
+        Conclusie van antwoord (1 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" />
+        Mondelinge behandeling (1 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="0.5" />
+        Akte / conclusie na zitting (0,5 punt)
+      </label>
+
+      <label class="check">
+        <input type="checkbox" class="step" data-points="1" />
+        Incident (conclusie) (1 punt)
+      </label>
+    </div>
+
+    <label for="puntenHandmatig">Punten handmatig (optioneel)</label>
+    <input type="number" id="puntenHandmatig" placeholder="Leeg laten = vinkjes gebruiken" min="0" step="0.5" />
+
+    <div class="row">
+      <label class="check">
+        <input type="checkbox" id="exploot" checked />
+        Explootkosten meenemen
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="nakosten" />
+        Nakosten meenemen
+      </label>
+    </div>
+
+    <button id="btnBereken">Bereken</button>
+
+    <section class="result">
+      <h2>Resultaat</h2>
+      <div id="melding" class="melding hidden"></div>
+      <div id="resultaat" class="result-box">Vul gegevens in en klik op Bereken.</div>
+
+      <div class="meta">
+        <strong>Tarieven gebruikt</strong><br />
+        <span id="tarievenInfo">—</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
