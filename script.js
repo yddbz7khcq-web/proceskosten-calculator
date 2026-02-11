@@ -1,13 +1,15 @@
 // ======================
 // Proceskosten calculator (Rechtbank civiel + Kanton + Hof principaal)
-// Verwacht in data/tarieven-YYYY.json o.a. deze keys:
+// + Waarde-type (geld / onbepaalde waarde) voor Rechtbank & Hof
+//
+// Verwachte keys in data/tarieven-YYYY.json o.a.:
 // - griffierecht_civiel_rechtbank
 // - liquidatietarief_rechtbank
 // - griffierecht_kanton
 // - liquidatie_kanton
 // - griffierecht_hof_civiel
 // - liquidatietarief_hof_principaal
-// - defaults (exploot_schatting, nakosten_schatting)  [optioneel maar handig]
+// - defaults (exploot_schatting, nakosten_schatting) [optioneel]
 // ======================
 
 // --------- Elementen & state ---------
@@ -15,6 +17,9 @@ const btn = document.getElementById("btnBereken");
 const tariefSelect = document.getElementById("tariefset");
 const gerechtSelect = document.getElementById("gerecht");      // rechtbank_civiel | kanton | hof
 const kantonExtra = document.getElementById("kantonExtra");    // kanton-only block (kan ontbreken)
+
+const waardeTypeEl = document.getElementById("waardeType");    // geld | onbepaald (rechtbank/hof)
+const vorderingEl = document.getElementById("vordering");
 
 let TARIEVEN = null;
 
@@ -26,6 +31,7 @@ function euro(n) {
 function showMelding(text) {
   const el = document.getElementById("melding");
   if (!el) return;
+
   if (!text) {
     el.classList.add("hidden");
     el.innerText = "";
@@ -38,6 +44,7 @@ function showMelding(text) {
 function setTarievenInfo() {
   const el = document.getElementById("tarievenInfo");
   if (!el) return;
+
   if (!TARIEVEN) {
     el.innerText = "—";
     return;
@@ -98,6 +105,14 @@ function getGriffierechtRechtbank(vordering, partijType) {
 
   const last = g.bands[g.bands.length - 1];
   return { bedrag: last[key], bandLabel: "—", note: last.note || "" };
+}
+
+// Rechtbank civiel – onbepaalde waarde (2026)
+// (Later kunnen we dit ook in JSON zetten, net als de rest.)
+function getGriffierechtRechtbankOnbepaald(partijType) {
+  if (partijType === "onvermogend") return { bedrag: 93, bandLabel: "Onbepaalde waarde", note: "" };
+  if (partijType === "natuurlijk") return { bedrag: 341, bandLabel: "Onbepaalde waarde", note: "" };
+  return { bedrag: 735, bandLabel: "Onbepaalde waarde", note: "" };
 }
 
 // ======================
@@ -197,6 +212,7 @@ function getGriffierechtHof(vordering, partijType, isOnbepaald = false) {
       return { bedrag: b[key], bandLabel: b.label || "—", note: b.note || "" };
     }
   }
+
   const last = bands[bands.length - 1];
   return { bedrag: last[key], bandLabel: last.label || "—", note: last.note || "" };
 }
@@ -207,6 +223,20 @@ function getTariefInfoHofPrincipaal(vordering) {
     if (r.max === null || vordering <= r.max) return r;
   }
   return rows[rows.length - 1];
+}
+
+// ======================
+// Waarde UI sync (disable bedrag bij onbepaald voor rechtbank/hof)
+// ======================
+function syncWaardeUI() {
+  // Alleen relevant voor rechtbank/hof; kanton heeft eigen "kantonSoort"
+  const gerecht = gerechtSelect?.value || "rechtbank_civiel";
+  const isKanton = gerecht === "kanton";
+  const isOnbepaald = (waardeTypeEl?.value === "onbepaald");
+
+  if (vorderingEl) {
+    vorderingEl.disabled = (!isKanton && isOnbepaald);
+  }
 }
 
 // ======================
@@ -222,21 +252,13 @@ btn.addEventListener("click", () => {
 
   const gerecht = gerechtSelect?.value || "rechtbank_civiel";
 
-  const vorderingRaw = document.getElementById("vordering")?.value ?? "";
-  const vordering = Number(vorderingRaw);
+  // Waarde-type (alleen voor rechtbank/hof)
+  const waardeType = waardeTypeEl?.value || "geld";
+  const isOnbepaald = (waardeType === "onbepaald");
 
-  // Validatie: vordering
-  if (vorderingRaw === "") {
-    showMelding("Vul de hoogte van de vordering in.");
-    return;
-  }
-  if (!Number.isFinite(vordering) || vordering < 0) {
-    showMelding("Vul een geldig bedrag in (0 of hoger).");
-    return;
-  }
-  if (vordering > 1_000_000_000) {
-    showMelding("Dit bedrag is wel héél hoog. Controleer of je geen typefout hebt gemaakt.");
-  }
+  const vorderingRaw = document.getElementById("vordering")?.value ?? "";
+  const vorderingNum = Number(vorderingRaw);
+  const vorderingSafe = vorderingRaw === "" ? 0 : vorderingNum;
 
   // Punten
   const punten = getPunten();
@@ -248,7 +270,6 @@ btn.addEventListener("click", () => {
   // Overige posten (optioneel)
   const explootAan = document.getElementById("exploot")?.checked ?? false;
   const nakostenAan = document.getElementById("nakosten")?.checked ?? false;
-
   const explootKosten = explootAan ? (TARIEVEN.defaults?.exploot_schatting ?? 115) : 0;
 
   // ======================
@@ -257,10 +278,28 @@ btn.addEventListener("click", () => {
   if (gerecht === "kanton") {
     const valueType = document.getElementById("kantonSoort")?.value || "geld";
 
-    const g = getGriffierechtKanton(vordering, valueType);
+    // Validatie vordering bij kanton: alleen verplicht bij "geld"
+    if (valueType === "geld") {
+      if (vorderingRaw === "") {
+        showMelding("Vul de hoogte van de vordering in (kanton: geldvordering).");
+        return;
+      }
+      if (!Number.isFinite(vorderingNum) || vorderingNum < 0) {
+        showMelding("Vul een geldig bedrag in (0 of hoger).");
+        return;
+      }
+    } else {
+      // Bij onbepaald/ontruiming/overig mag vordering leeg zijn
+      if (vorderingRaw !== "" && (!Number.isFinite(vorderingNum) || vorderingNum < 0)) {
+        showMelding("Vul een geldig bedrag in (0 of hoger).");
+        return;
+      }
+    }
+
+    const g = getGriffierechtKanton(vorderingSafe, valueType);
     const griffierecht = g.bedrag;
 
-    const liq = getLiquidatieKanton(vordering, valueType);
+    const liq = getLiquidatieKanton(vorderingSafe, valueType);
 
     let salaris = 0;
     let liqUitleg = "";
@@ -288,7 +327,7 @@ btn.addEventListener("click", () => {
 
       <strong>Transparantie</strong><br>
       Tariefjaar: ${tariefSelect.value}<br>
-      Vordering: ${euro(vordering)}<br>
+      Vordering: ${vorderingRaw === "" ? "—" : euro(vorderingSafe)}<br>
       Griffierecht-band: ${g.bandLabel}<br>
       ${liqUitleg}<br><br>
 
@@ -298,16 +337,32 @@ btn.addEventListener("click", () => {
   }
 
   // ======================
+  // Rechtbank/Hof validatie vordering
+  // ======================
+  if (!isOnbepaald && vorderingRaw === "") {
+    showMelding("Vul de hoogte van de vordering in.");
+    return;
+  }
+  if (vorderingRaw !== "" && (!Number.isFinite(vorderingNum) || vorderingNum < 0)) {
+    showMelding("Vul een geldig bedrag in (0 of hoger).");
+    return;
+  }
+  if (vorderingSafe > 1_000_000_000) {
+    showMelding("Dit bedrag is wel héél hoog. Controleer of je geen typefout hebt gemaakt.");
+  }
+
+  // ======================
   // HOF (principaal)
   // ======================
   if (gerecht === "hof") {
     const partijType = document.getElementById("partijType")?.value || "niet_natuurlijk";
 
-    // (Later voegen we UI toe voor onbepaalde waarde; nu default: false)
-    const g = getGriffierechtHof(vordering, partijType, false);
+    const g = getGriffierechtHof(vorderingSafe, partijType, isOnbepaald);
     const griffierecht = g.bedrag;
 
-    const tarief = getTariefInfoHofPrincipaal(vordering);
+    // Liquidatie: bij onbepaalde waarde hebben we geen goede tariefgroep → we gebruiken vorderingSafe (0 als leeg)
+    // en tonen transparant dat dit indicatief is.
+    const tarief = getTariefInfoHofPrincipaal(vorderingSafe);
     const puntenGeliquideerd = tarief.maxPunten == null ? punten : Math.min(punten, tarief.maxPunten);
     const salaris = puntenGeliquideerd * tarief.punt;
 
@@ -325,10 +380,12 @@ btn.addEventListener("click", () => {
 
       <strong>Transparantie</strong><br>
       Tariefjaar: ${tariefSelect.value}<br>
-      Vordering: ${euro(vordering)}<br>
+      Waarde: ${isOnbepaald ? "Onbepaalde waarde" : "Geldvordering"}<br>
+      Vordering: ${isOnbepaald ? "—" : euro(vorderingSafe)}<br>
       Griffierecht-band: ${g.bandLabel}${g.note ? `<br><em>Let op:</em> ${g.note}` : ""}<br>
       Liquidatietarief hof: tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
-      Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br><br>
+      Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br>
+      ${isOnbepaald ? `<br><em>Let op:</em> bij onbepaalde waarde is de tariefgroep voor liquidatie indicatief.` : ""}<br><br>
 
       <em>Disclaimer:</em> indicatie; rechter kan afwijken.
     `;
@@ -340,10 +397,13 @@ btn.addEventListener("click", () => {
   // ======================
   const partijType = document.getElementById("partijType")?.value || "niet_natuurlijk";
 
-  const g = getGriffierechtRechtbank(vordering, partijType);
+  const g = isOnbepaald
+    ? getGriffierechtRechtbankOnbepaald(partijType)
+    : getGriffierechtRechtbank(vorderingSafe, partijType);
+
   const griffierecht = g.bedrag;
 
-  const tarief = getTariefInfoRechtbank(vordering);
+  const tarief = getTariefInfoRechtbank(vorderingSafe);
   const puntenGeliquideerd = tarief.maxPunten == null ? punten : Math.min(punten, tarief.maxPunten);
   const salaris = puntenGeliquideerd * tarief.punt;
 
@@ -361,10 +421,12 @@ btn.addEventListener("click", () => {
 
     <strong>Transparantie</strong><br>
     Tariefjaar: ${tariefSelect.value}<br>
-    Vordering: ${euro(vordering)}<br>
+    Waarde: ${isOnbepaald ? "Onbepaalde waarde" : "Geldvordering"}<br>
+    Vordering: ${isOnbepaald ? "—" : euro(vorderingSafe)}<br>
     Griffierecht-band: ${g.bandLabel}<br>
     Liquidatietarief rechtbank: tarief ${tarief.name}, ${euro(tarief.punt)}/punt${tarief.maxPunten ? `, max ${tarief.maxPunten}` : ""}<br>
-    Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br><br>
+    Punten: ${punten} (geliquideerd: ${puntenGeliquideerd})<br>
+    ${isOnbepaald ? `<br><em>Let op:</em> bij onbepaalde waarde is de tariefgroep voor liquidatie indicatief.` : ""}<br><br>
 
     <em>Disclaimer:</em> indicatie; rechter kan afwijken.
   `;
@@ -384,12 +446,19 @@ async function init() {
 
   // Kanton extra velden tonen/verbergen
   if (gerechtSelect && kantonExtra) {
-    const sync = () => {
+    const syncGerechtUI = () => {
       kantonExtra.style.display = gerechtSelect.value === "kanton" ? "block" : "none";
+      syncWaardeUI();
     };
-    gerechtSelect.addEventListener("change", sync);
-    sync();
+    gerechtSelect.addEventListener("change", syncGerechtUI);
+    syncGerechtUI();
   }
+
+  // Waarde-type UI sync
+  if (waardeTypeEl) {
+    waardeTypeEl.addEventListener("change", syncWaardeUI);
+  }
+  syncWaardeUI();
 }
 
 // wisselen tariefjaar
