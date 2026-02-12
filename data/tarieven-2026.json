@@ -4,6 +4,11 @@
   "source_note": "Bronnen: Rechtspraak.nl (griffierecht civiel, liquidatietarief rechtbanken/hoven).",
   "griffierecht_civiel_rechtbank": {
     "onvermogend": 93,
+    "onbepaald": {
+      "onvermogend": 93,
+      "natuurlijk": 341,
+      "niet_natuurlijk": 735
+    },
     "bands": [
       {
         "max": 100000,
@@ -36,6 +41,31 @@
   "defaults": {
     "exploot_schatting": 115,
     "nakosten_schatting": 135
+  },
+
+  "kortgeding": {
+    "salaris": {
+      "kanton": {
+        "verstek": 577,
+        "contradictoir": { "eenvoudig": 577, "gemiddeld": 865, "complex": 1154 },
+        "extra_zitting_factor": 0.5,
+        "reconv_halveer_factor": 0.5
+      },
+      "rechtbank_civiel": {
+        "verstek": 760,
+        "contradictoir": { "eenvoudig": 760, "gemiddeld": 1177, "complex": 1766 },
+        "extra_zitting_factor": 0.5,
+        "reconv_halveer_factor": 0.5
+      }
+    },
+    "nakosten": {
+      "kanton": { "max": 144 },
+      "rechtbank_civiel": {
+        "basis": 189,
+        "conventie_reconventie": 296,
+        "betekening": 98
+      }
+    }
   },
 
   "griffierecht_kanton": {
@@ -73,49 +103,49 @@
     },
     "nakosten_max": 144
   },
-"griffierecht_hof_civiel": {
-  "bands": [
-    {
-      "max": 12500,
-      "label": "Onbepaalde waarde of ≤ € 12.500",
-      "niet_natuurlijk": 851,
-      "natuurlijk": 373,
-      "onvermogend": 373
-    },
-    {
-      "max": 100000,
-      "label": "€ 12.500 – € 100.000",
-      "niet_natuurlijk": 2321,
-      "natuurlijk": 851,
-      "onvermogend": 373
-    },
-    {
-      "max": 1000000,
-      "label": "€ 100.000 – € 1.000.000",
-      "niet_natuurlijk": 7003,
-      "natuurlijk": 2192,
-      "onvermogend": 373
-    },
-    {
-      "max": null,
-      "label": "> € 1.000.000",
-      "niet_natuurlijk": 14007,
-      "natuurlijk": 2192,
-      "onvermogend": 373,
-      "note": "Als een natuurlijke persoon partij is, geldt deze categorie niet; dan geldt de band € 100.000 – € 1.000.000."
-    }
+
+  "griffierecht_hof_civiel": {
+    "bands": [
+      {
+        "max": 12500,
+        "label": "Onbepaalde waarde of ≤ € 12.500",
+        "niet_natuurlijk": 851,
+        "natuurlijk": 373,
+        "onvermogend": 373
+      },
+      {
+        "max": 100000,
+        "label": "€ 12.500 – € 100.000",
+        "niet_natuurlijk": 2321,
+        "natuurlijk": 851,
+        "onvermogend": 373
+      },
+      {
+        "max": 1000000,
+        "label": "€ 100.000 – € 1.000.000",
+        "niet_natuurlijk": 7003,
+        "natuurlijk": 2192,
+        "onvermogend": 373
+      },
+      {
+        "max": null,
+        "label": "> € 1.000.000",
+        "niet_natuurlijk": 14007,
+        "natuurlijk": 2192,
+        "onvermogend": 373,
+        "note": "Als een natuurlijke persoon partij is, geldt deze categorie niet; dan geldt de band € 100.000 – € 1.000.000."
+      }
+    ]
+  },
+
+  "liquidatietarief_hof_principaal": [
+    { "name": "I", "max": 9999, "punt": 912, "maxPunten": 3 },
+    { "name": "II", "max": 19999, "punt": 1290, "maxPunten": 3 },
+    { "name": "III", "max": 39999, "punt": 1670, "maxPunten": 4 },
+    { "name": "IV", "max": 97999, "punt": 2352, "maxPunten": 6 },
+    { "name": "V", "max": 194999, "punt": 3797, "maxPunten": null },
+    { "name": "VI", "max": 389999, "punt": 4707, "maxPunten": null },
+    { "name": "VII", "max": 1000000, "punt": 5619, "maxPunten": null },
+    { "name": "VIII", "max": null, "punt": 6609, "maxPunten": null }
   ]
-},
-"liquidatietarief_hof_principaal": [
-  { "name": "I", "max": 9999, "punt": 912, "maxPunten": 3 },
-  { "name": "II", "max": 19999, "punt": 1290, "maxPunten": 3 },
-  { "name": "III", "max": 39999, "punt": 1670, "maxPunten": 4 },
-  { "name": "IV", "max": 97999, "punt": 2352, "maxPunten": 6 },
-  { "name": "V", "max": 194999, "punt": 3797, "maxPunten": null },
-  { "name": "VI", "max": 389999, "punt": 4707, "maxPunten": null },
-  { "name": "VII", "max": 1000000, "punt": 5619, "maxPunten": null },
-  { "name": "VIII", "max": null, "punt": 6609, "maxPunten": null }
-]
-
 }
-
