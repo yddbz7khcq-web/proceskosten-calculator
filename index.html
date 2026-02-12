@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -15,23 +14,37 @@
       Indicatie van proceskosten. Rechter kan afwijken.
     </p>
 
-    <label for="tariefset">Tarieven</label>
+    <!-- 1) Jaar dagvaarding -->
+    <label for="tariefset">In welk jaar is de dagvaarding betekend?</label>
     <select id="tariefset">
       <option value="2026" selected>2026</option>
+      <!-- later: <option value="2025">2025</option> -->
     </select>
 
-    <label for="gerecht">Gerecht</label>
+    <!-- 2) Soort partij -->
+    <label for="partijType">Soort partij</label>
+    <select id="partijType">
+      <option value="niet_natuurlijk">Niet-natuurlijke persoon (bv. BV/VOF)</option>
+      <option value="natuurlijk">Natuurlijke persoon (bv. particulier/eenmanszaak)</option>
+      <option value="onvermogend">Onvermogend (laag inkomen)</option>
+    </select>
+
+    <!-- 3) Instantie (we hergebruiken id="gerecht" zodat JS minimaal hoeft te wijzigen) -->
+    <label for="gerecht">In welke instantie wordt geprocedeerd?</label>
     <select id="gerecht">
-      <option value="rechtbank_civiel" selected>Rechtbank (civiel)</option>
-      <option value="kanton">Kanton</option>
-      <option value="hof">Gerechtshof (principaal hoger beroep)</option>
+      <option value="rechtbank_civiel" selected>Eerste aanleg - rechtbank</option>
+      <option value="kanton">Eerste aanleg - kanton</option>
+      <option value="hof">Hoger beroep</option>
     </select>
 
-    <label for="procedure">Procedure</label>
-    <select id="procedure">
-      <option value="bodem" selected>Bodemprocedure</option>
-      <option value="kg">Kort geding</option>
-    </select>
+    <!-- 4) Kort geding vraag (alleen tonen bij rechtbank/kanton) -->
+    <div id="procedureWrap">
+      <label for="procedure">Is sprake van een kort geding?</label>
+      <select id="procedure">
+        <option value="bodem" selected>Nee</option>
+        <option value="kg">Ja</option>
+      </select>
+    </div>
 
     <div id="kgExtra" style="display:none;">
       <hr class="sep" />
@@ -97,81 +110,77 @@
     </div>
 
     <div id="hofExtra" style="display:none;">
-      <hr class="sep" />
-      <h2>Hof (extra)</h2>
+  <hr class="sep" />
+  <h2>Hof (extra)</h2>
 
-      <div class="row">
-        <label class="check">
-          <input type="checkbox" id="incidenteel" />
-          Incidenteel appel meenemen (indicatie)
-        </label>
-      </div>
+  <label for="incidenteel">Is incidenteel hoger beroep ingesteld?</label>
+  <select id="incidenteel">
+    <option value="nee" selected>Nee</option>
+    <option value="ja">Ja</option>
+  </select>
 
-      <div class="row">
-        <label class="check">
-          <input type="checkbox" id="incidenteelNoodzakelijk" />
-          Incidenteel: noodzakelijk geoordeeld (anders €0)
-        </label>
-      </div>
+  <p class="hint">
+    Bij incidenteel appel wordt indicatief ½ van het salaris in principaal gehanteerd.
+  </p>
+</div>
 
-      <p class="hint">
-        Bij incidenteel appel wordt indicatief ½ van het salaris in principaal gehanteerd, mits noodzakelijk geoordeeld.
-      </p>
-    </div>
+   <div id="waardeSection">
+  <div id="waardeSection">
+  <label id="waardeTypeLabel" for="waardeType">Waarde</label>
+  <select id="waardeType">
+    <option value="geld" selected>Geldvordering (bedrag in €)</option>
+    <option value="onbepaald">Onbepaalde waarde</option>
+  </select>
+  <p class="hint" id="waardeHint" style="margin-top:6px;">
+    Bij onbepaalde waarde wordt het bedrag alleen gebruikt voor liquidatietarief (indicatief).
+  </p>
 
+  <div id="vorderingRow">
     <label for="vordering">Hoogte vordering (€)</label>
     <input type="number" id="vordering" placeholder="Bijv. 50000" min="0" step="1" />
-
-    <label for="waardeType">Waarde</label>
-    <select id="waardeType">
-      <option value="geld" selected>Geldvordering (bedrag in €)</option>
-      <option value="onbepaald">Onbepaalde waarde</option>
-    </select>
-    <p class="hint" id="waardeHint" style="margin-top:6px;">
-      Bij onbepaalde waarde wordt het bedrag alleen gebruikt voor liquidatietarief (indicatief).
-    </p>
-
-    <label for="partijType">Partij (voor griffierecht)</label>
-    <select id="partijType">
-      <option value="niet_natuurlijk">Niet-natuurlijke persoon (bv. BV/VOF)</option>
-      <option value="natuurlijk">Natuurlijke persoon (bv. particulier/eenmanszaak)</option>
-      <option value="onvermogend">Onvermogend (laag inkomen)</option>
-    </select>
+  </div>
+</div>
 
     <hr class="sep" />
 
     <h2>Proceshandelingen (punten)</h2>
     <p class="hint">Alleen relevant voor bodemprocedure (rechtbank/hof). Handmatig invullen overschrijft de vinkjes.</p>
 
-    <div class="grid">
-      <label class="check">
-        <input type="checkbox" class="step" data-points="1" checked />
-        Dagvaarding / procesinleiding (1 punt)
-      </label>
+    <div id="puntenSection">
+  <hr class="sep" />
+  <h2>Proceshandelingen (punten)</h2>
+  <p class="hint">Alleen relevant voor bodemprocedure (rechtbank/hof).</p>
 
-      <label class="check">
-        <input type="checkbox" class="step" data-points="1" checked />
-        Conclusie van antwoord (1 punt)
-      </label>
+  <div class="grid">
+    <label class="check">
+      <input type="checkbox" class="step" data-points="1" checked />
+      Dagvaarding / procesinleiding (1 punt)
+    </label>
 
-      <label class="check">
-        <input type="checkbox" class="step" data-points="1" />
-        Mondelinge behandeling (1 punt)
-      </label>
+    <label class="check">
+      <input type="checkbox" class="step" data-points="1" checked />
+      Conclusie van antwoord (1 punt)
+    </label>
 
-      <label class="check">
-        <input type="checkbox" class="step" data-points="0.5" />
-        Akte / conclusie na zitting (0,5 punt)
-      </label>
+    <label class="check">
+      <input type="checkbox" class="step" data-points="1" />
+      Mondelinge behandeling (1 punt)
+    </label>
 
-      <label class="check">
-        <input type="checkbox" class="step" data-points="1" />
-        Incident (conclusie) (1 punt)
-      </label>
-    </div>
+    <label class="check">
+      <input type="checkbox" class="step" data-points="0.5" />
+      Akte / conclusie na zitting (0,5 punt)
+    </label>
 
-    <label for="puntenHandmatig">Punten handmatig (optioneel)</label>
-    <input type="number" id="puntenHandmatig" placeholder="Leeg laten = vinkjes gebruiken" min="0" step="0.5" />
+    <label class="check">
+      <input type="checkbox" class="step" data-points="1" />
+      Incident (conclusie) (1 punt)
+    </label>
+  </div>
+
+  <label for="puntenHandmatig">Punten handmatig (optioneel)</label>
+  <input type="number" id="puntenHandmatig" placeholder="Leeg laten = vinkjes gebruiken" min="0" step="0.5" />
+</div>
 
     <div class="row">
       <label class="check">
@@ -209,4 +218,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-```
